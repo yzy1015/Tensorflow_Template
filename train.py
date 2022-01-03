@@ -44,7 +44,8 @@ for epoch in range(config.EP_NUM):
     epoch_train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
     epoch_val_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
     # train for 1 epoch
-    for i in tqdm(range(len(train_data_generator))):
+    #for i in tqdm(range(len(train_data_generator))): //todo
+    for i in tqdm(range(5)):
         X, y = train_data_generator[i]
         loss, grad_vector = gradient(model, classification_loss, X, y)
         optimizer.apply_gradients(zip(grad_vector, model.trainable_variables))
@@ -71,7 +72,7 @@ for epoch in range(config.EP_NUM):
           'Val accuracy:', val_acc)
 
     # loss based lr decay
-    if (len(train_loss_history) > 1) and (train_loss + config.lr_decay_threshold > train_loss_history[-2]):
+    if (len(train_loss_history) > 1) and (train_loss_history[-2] * config.lr_decay_threshold < train_loss):
         learning_rate = learning_rate / config.lr_decay_ratio
         optimizer.lr.assign(learning_rate)
         print('learning rate decay to', optimizer.lr.read_value().numpy())
@@ -79,7 +80,7 @@ for epoch in range(config.EP_NUM):
     if (current_best_loss is None) or (val_acc > current_best_acc) or (val_loss < current_best_loss):
         current_best_acc = val_acc
         current_best_loss = val_loss
-        model.save_weights(config.save_format.format(epoch, val_loss, val_acc))
+        model.save(config.save_format.format(epoch, val_loss, val_acc))
 
     # optimizer.lr.assign(0.001)
 

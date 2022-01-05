@@ -10,6 +10,7 @@ import config
 from data_generator import ImgDataGen
 from model import FineTuneNet
 from loss_function import classification_loss, gradient
+from optimizer import update_lr
 from load_file_name import cat_dog_dataset_train_val
 
 
@@ -32,6 +33,7 @@ val_data_generator = ImgDataGen(val_path, val_label, config.val_batch_size,
                                 preprocess_input=preprocess_input,
                                 transform=config.img_transform)
 
+
 current_best_loss = None
 current_best_acc = None
 val_loss_history = []
@@ -44,8 +46,7 @@ for epoch in range(config.EP_NUM):
     epoch_train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
     epoch_val_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
     # train for 1 epoch
-    #for i in tqdm(range(len(train_data_generator))): //todo
-    for i in tqdm(range(5)):
+    for i in tqdm(range(len(train_data_generator))):
         X, y = train_data_generator[i]
         loss, grad_vector = gradient(model, classification_loss, X, y)
         optimizer.apply_gradients(zip(grad_vector, model.trainable_variables))
@@ -72,7 +73,7 @@ for epoch in range(config.EP_NUM):
           'Val accuracy:', val_acc)
 
     # loss based lr decay
-    if (len(train_loss_history) > 1) and (train_loss_history[-2] * config.lr_decay_threshold < train_loss):
+    if update_lr(train_loss_history, config, train_loss):
         learning_rate = learning_rate / config.lr_decay_ratio
         optimizer.lr.assign(learning_rate)
         print('learning rate decay to', optimizer.lr.read_value().numpy())
@@ -80,7 +81,7 @@ for epoch in range(config.EP_NUM):
     if (current_best_loss is None) or (val_acc > current_best_acc) or (val_loss < current_best_loss):
         current_best_acc = val_acc
         current_best_loss = val_loss
-        model.save(config.save_format.format(epoch, val_loss, val_acc))
+        model.save_weights(config.save_format.format(epoch, val_loss, val_acc))
 
     # optimizer.lr.assign(0.001)
 
